@@ -1,5 +1,6 @@
 package bob.e2e.controller
 
+import bob.e2e.domain.service.KeypadService
 import org.springframework.core.io.ClassPathResource
 import org.springframework.core.io.InputStreamResource
 import org.springframework.http.HttpHeaders
@@ -11,31 +12,23 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
-import java.security.MessageDigest
-import java.util.Base64
-
 
 @RestController
 @RequestMapping("/keypad")
 class KeypadController {
-    // GET 요청 -> 키패드 해시값, 키패드 이미지 전송
+    // GET 요청 -> 키패드 식별자, 숫자쌍 & 키패드 이미지, HMAC 전송
     @GetMapping("/retrieve_keypad")
-    fun getImageAndHash(): ResponseEntity<Map<String, Any>> {
-        val resource = ClassPathResource("static/keypad/_0.png")
-
-        // Calculate the hash
-        val hashValue = calculateHash(resource)
-
-        // Read and encode the image to Base64
-        val imageStream = resource.inputStream
-        val imageBytes = StreamUtils.copyToByteArray(imageStream)
-        val base64Image = Base64.getEncoder().encodeToString(imageBytes)
+    fun getImageAndHash(): ResponseEntity<Map<String, String>> {
+        val keypadService = KeypadService()
+        val keypadImages = keypadService.getImages()
+        val keypadHashes = keypadService.generateRandomHashes()
 
         // Create the JSON response
-        val responseBody = mapOf(
-            "image" to base64Image,
-            "hash" to hashValue
-        )
+        // Create the new dictionary
+        val responseBody = mutableMapOf<String, String>()
+        for ((key, hashValue) in keypadHashes) {
+            responseBody[hashValue] = keypadImages[key] ?: ""
+        }
 
         return ResponseEntity
             .status(HttpStatus.OK)
