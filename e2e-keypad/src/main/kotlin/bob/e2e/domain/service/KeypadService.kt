@@ -52,7 +52,7 @@ class KeypadService {
         return digest.fold("") { str, it -> str + "%02x".format(it) }
     }
 
-    fun hmacSHA256(key: String, data: String): String {
+    fun generateHMAC(key: String, data: String): String {
         // Convert the key to a byte array
         val secretKey = SecretKeySpec(key.toByteArray(Charsets.UTF_8), "HmacSHA256")
 

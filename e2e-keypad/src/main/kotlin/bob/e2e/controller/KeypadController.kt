@@ -18,18 +18,28 @@ import org.springframework.web.bind.annotation.RestController
 class KeypadController {
     // GET 요청 -> 키패드 식별자, 숫자쌍 & 키패드 이미지, HMAC 전송
     @GetMapping("/retrieve_keypad")
-    fun getImageAndHash(): ResponseEntity<Map<String, String>> {
+    fun getImageAndHash(): ResponseEntity<Map<String, Any>> {
         val keypadService = KeypadService()
         val keypadImages = keypadService.getImages()
         val keypadHashes = keypadService.generateRandomHashes()
 
         // Create the JSON response
         // Create the new dictionary
-        val responseBody = mutableMapOf<String, String>()
+        val hashImageMap = mutableMapOf<String, String>()
         for ((key, hashValue) in keypadHashes) {
-            responseBody[hashValue] = keypadImages[key] ?: ""
+            hashImageMap[hashValue] = keypadImages[key] ?: ""
         }
 
+        val keypadSessionId = keypadService.generateRandomHash()
+        val hmacKey = "abcde12345" // test
+        val keypadHmac = keypadService.generateHMAC(keypadSessionId, hmacKey)
+
+        val responseBody = mapOf(
+            "keypad" to hashImageMap,
+            "HMAC" to keypadHmac,
+            "keypadSessionId" to keypadSessionId
+        )
+        // Create the response body
         return ResponseEntity
             .status(HttpStatus.OK)
             .contentType(MediaType.APPLICATION_JSON)
