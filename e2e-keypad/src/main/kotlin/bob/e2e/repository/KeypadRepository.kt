@@ -5,6 +5,12 @@ class KeypadRepository {
     private val jedis = redisConfig.getJedis()
 
     fun storeHashImageMap(hashImageMap: Map<String, String>) {
+
+        val current = jedis.hgetAll("HashImageMap")
+        if (current.isNotEmpty()) {
+            jedis.del("HashImageMap")
+        }
+
         hashImageMap.forEach { (key, value) ->
             jedis.hset("HashImageMap", key, value)
         }
@@ -12,5 +18,9 @@ class KeypadRepository {
 
     fun retrieveHashImageMap(): Map<String, String> {
         return jedis.hgetAll("HashImageMap")
+    }
+
+    fun clearAllData() {
+        jedis.flushAll()
     }
 }
