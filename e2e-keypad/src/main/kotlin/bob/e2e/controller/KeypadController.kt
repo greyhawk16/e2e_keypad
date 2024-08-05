@@ -1,6 +1,8 @@
 package bob.e2e.controller
 
 import bob.e2e.domain.service.KeypadService
+import bob.e2e.repository.KeypadRepository
+
 import org.springframework.core.io.ClassPathResource
 import org.springframework.core.io.InputStreamResource
 import org.springframework.http.HttpHeaders
@@ -17,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/keypad")
 class KeypadController {
     // GET 요청 -> 키패드 식별자, 숫자쌍 & 키패드 이미지, HMAC 전송
-    @GetMapping("/retrieve_keypad")
+    @GetMapping("/create_keypad")
     fun getImageAndHash(): ResponseEntity<Map<String, Any>> {
         val keypadService = KeypadService()
         val keypadImages = keypadService.getImages()
@@ -39,6 +41,10 @@ class KeypadController {
             "HMAC" to keypadHmac,
             "keypadSessionId" to keypadSessionId
         )
+
+        val keypadRepository = KeypadRepository()
+        keypadRepository.storeHashImageMap(hashImageMap)
+
         // Create the response body
         return ResponseEntity
             .status(HttpStatus.OK)
@@ -46,7 +52,14 @@ class KeypadController {
             .body(responseBody)
     }
 
-    private fun calculateHash(resource: ClassPathResource): String {
-        return "0"
+    @GetMapping("/retrieve_keypad")
+    fun RetrieveHashImageMap(): ResponseEntity<Map<String, Any>> {
+        val keypadRepository = KeypadRepository()
+        val ans = keypadRepository.retrieveHashImageMap()
+
+        return ResponseEntity
+            .status(HttpStatus.OK)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(ans)
     }
 }
