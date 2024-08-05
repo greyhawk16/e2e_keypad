@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController
 class KeypadController {
     // GET 요청 -> 키패드 식별자, 숫자쌍 & 키패드 이미지, HMAC 전송
     @GetMapping("/create_keypad")
-    fun getImageAndHash(): ResponseEntity<Map<String, Any>> {
+    fun CreateKeypad(): ResponseEntity<Map<String, Any>> {
         val keypadService = KeypadService()
         val keypadImages = keypadService.getImages()
         val keypadHashes = keypadService.generateRandomHashes()
@@ -53,7 +53,7 @@ class KeypadController {
     }
 
     @GetMapping("/retrieve_keypad")
-    fun RetrieveHashImageMap(): ResponseEntity<Map<String, Any>> {
+    fun RetrieveKeypad(): ResponseEntity<Map<String, Any>> {
         val keypadRepository = KeypadRepository()
         val ans = keypadRepository.retrieveHashImageMap()
 
