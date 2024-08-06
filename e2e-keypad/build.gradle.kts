@@ -22,6 +22,7 @@ dependencies {
     implementation("com.h2database:h2")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
+    implementation("io.github.cdimascio:dotenv-kotlin:6.2.2")
     implementation("redis.clients:jedis:4.0.1")
 }
 

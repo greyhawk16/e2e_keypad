@@ -2,6 +2,7 @@ package bob.e2e.controller
 
 import bob.e2e.domain.service.KeypadService
 import bob.e2e.repository.KeypadRepository
+import io.github.cdimascio.dotenv.Dotenv
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -30,7 +31,6 @@ class KeypadController {
         }
 
         val keypadSessionId = keypadService.generateRandomHash()
-        val hmacKey = hmacKey // test
         val keypadHmac = keypadService.generateHMAC(keypadSessionId, hmacKey)
 
         val responseBody = mapOf(
@@ -39,8 +39,9 @@ class KeypadController {
             "keypadSessionId" to keypadSessionId
         )
 
+        val dotenv = Dotenv.load()
+        val dbKey = dotenv["NumToHashMap"]
         val keypadRepository = KeypadRepository()
-        val dbKey = "NumToHash"
         keypadRepository.storeHashImageMap(keypadNumHashes, dbKey)
 
         // Create the response body
