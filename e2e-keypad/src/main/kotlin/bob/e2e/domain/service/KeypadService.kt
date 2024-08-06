@@ -11,7 +11,7 @@ import javax.crypto.spec.SecretKeySpec
 import kotlin.random.Random
 
 class KeypadService {
-    fun getImages(): Map<String, String> {
+    fun createHashImageMap(): Map<String, String> {
         return try {
             val resource = ClassPathResource("static/keypad")
             val imageFiles = resource.file.listFiles { file -> file.extension == "png" }
