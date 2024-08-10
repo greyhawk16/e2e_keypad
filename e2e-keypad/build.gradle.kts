@@ -24,6 +24,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation("io.github.cdimascio:dotenv-kotlin:6.2.2")
     implementation("redis.clients:jedis:4.0.1")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib")
+    implementation("org.springframework.boot:spring-boot-starter-web")
+    // Add other dependencies here
 }
 
 tasks.test {
