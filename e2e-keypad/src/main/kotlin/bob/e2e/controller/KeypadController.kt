@@ -19,9 +19,9 @@ import java.util.Base64
 
 
 @RestController
-@RequestMapping("/keypad")
+@RequestMapping("/")
 class KeypadController {
-    @GetMapping("/keypad_information")
+    @GetMapping("/get_kaypad_info")
     fun RetrieveKeypad(): ResponseEntity<Map<String, Any>> {
         val keypadRepository = KeypadRepository()
         val dbKey = "NumToHash"
@@ -34,7 +34,7 @@ class KeypadController {
             .body(ans)
     }
 
-    @GetMapping("/render_keypad")
+    @GetMapping("/")
     fun renderKeypad(): ResponseEntity<ByteArray> {
         val keypadService = KeypadService()
         val keypadImages = keypadService.createHashImageMap()
