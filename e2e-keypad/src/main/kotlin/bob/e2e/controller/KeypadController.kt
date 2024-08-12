@@ -38,8 +38,9 @@ class KeypadController {
     @GetMapping("/show_keypad")
     fun renderKeypad(): ResponseEntity<ByteArray> {
         val keypadService = KeypadService()
-        val keypadImages = keypadService.createHashImageMap()
-        val keypadNumHashes = keypadService.generateRandomHashes()
+        val keypadNumHashes = keypadService.generateRandomHashes()  // 0~9까지의 해시값 생성
+        val keypadImages = keypadService.createHashImageMap()   // 랜덤 이미지 생성 시, 숫자 별 해시값 전달하기 -> 랜덤으로 넣은 이미지별의 숫자별 해시값도 순서대로 반환하기
+        // 예시: [[1, 공백,  3], [2, 4, 공백]] -> [(1의 해시값), 공백문자열, (3의 해시값), (2의 해시값), (4의 해시값), 공백문자열]반환
 
         // 해시값-이미지 연결한 Map 생성
         // 추후 shuffle 적용 필요
