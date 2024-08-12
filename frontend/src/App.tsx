@@ -8,6 +8,7 @@ let NumHashMap: any = null;
 const App: React.FC = () => {
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const [keypadInfo, setKeypadInfo] = useState<any>(null);
+    const [userInput, setUserInput] = useState<string>('');
     const baseURL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8080';
     const apiEndpointShowKeypad = `${baseURL}/api/show_keypad`;
     const apiEndpointGetKeypadInfo = `${baseURL}/api/get_kaypad_info`;
@@ -41,11 +42,32 @@ const App: React.FC = () => {
             });
     }, []);
 
+    const handleKeyPress = (event: React.KeyboardEvent) => {
+        const { key } = event;
+
+        // Check if the key is a digit
+        if (/^\d$/.test(key)) {
+            if (userInput.length < 6) {
+                setUserInput(prevInput => prevInput + key);
+            }
+        } else if (key === 'Backspace') {
+            setUserInput(prevInput => prevInput.slice(0, -1));
+        }
+    };
+
+    const showAlert = () => {
+        const mappedValues = userInput.split('').map(digit => NumHashMap[digit]);
+        alert(`User Input: ${userInput}\nMapped Values: ${mappedValues.join(', ')}`);
+    };
+
     return (
-        <div className="App">
+        <div className="App" tabIndex={0} onKeyDown={handleKeyPress}>
             <h1>Demo Project</h1>
             {imageSrc ? <img src={imageSrc} alt="Rendered Keypad" /> : <p>Loading image...</p>}
             {NumHashMap && <pre>{JSON.stringify(NumHashMap, null, 2)}</pre>}
+            <h2>Enter 6-digit Code</h2>
+            <p>{userInput}</p>
+            <button onClick={showAlert}>Show User Input</button>
         </div>
     );
 }
