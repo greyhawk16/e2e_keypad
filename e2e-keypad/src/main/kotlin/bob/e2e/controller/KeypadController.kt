@@ -16,10 +16,11 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
 import java.util.Base64
+import java.io.File
 
 
 @RestController
-@RequestMapping("/")
+@RequestMapping("/api")
 class KeypadController {
     @GetMapping("/get_kaypad_info")
     fun RetrieveKeypad(): ResponseEntity<Map<String, Any>> {
@@ -34,7 +35,7 @@ class KeypadController {
             .body(ans)
     }
 
-    @GetMapping("/")
+    @GetMapping("/example")
     fun renderKeypad(): ResponseEntity<ByteArray> {
         val keypadService = KeypadService()
         val keypadImages = keypadService.createHashImageMap()
@@ -57,7 +58,7 @@ class KeypadController {
         keypadRepository.storeHashImageMap(keypadNumHashes, dbKey)
 
         val combinedImage = combineImages(keypadImages.values.toList().shuffled())
-
+        saveImageToFile(combinedImage, "e2e-keypad/src/main/resources/static/keypad/combinedImage.png")
         return ResponseEntity
             .status(HttpStatus.OK)
             .contentType(MediaType.IMAGE_PNG)
@@ -90,5 +91,12 @@ class KeypadController {
     private fun decodeBase64ToImage(base64: String): BufferedImage {
         val imageBytes = Base64.getDecoder().decode(base64)
         return ImageIO.read(ByteArrayInputStream(imageBytes))
+    }
+
+    private fun saveImageToFile(imageBytes: ByteArray, filePath: String) {
+        val image = ImageIO.read(ByteArrayInputStream(imageBytes))
+        val outputFile = File(filePath)
+        outputFile.parentFile.mkdirs() // Create directories if they do not exist
+        ImageIO.write(image, "png", outputFile)
     }
 }
