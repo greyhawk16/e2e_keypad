@@ -22,7 +22,7 @@ import java.io.File
 @RestController
 @RequestMapping("/api")
 class KeypadController {
-    private var PublicKey: ArrayList<ArrayList<String?>> = arrayListOf()
+    private var PublicKey: MutableMap<Pair<Int, Int>, String> = mutableMapOf()
 
     @GetMapping("/get_kaypad_secret_key")
     fun RetrieveKeypad(): ResponseEntity<Map<String, Any>> {
@@ -38,7 +38,7 @@ class KeypadController {
     }
 
     @GetMapping("/get_public_key")
-    fun getPublicKey(): ResponseEntity<ArrayList<ArrayList<String?>>> {
+    fun getPublicKey(): ResponseEntity<MutableMap<Pair<Int, Int>, String>> {
         return ResponseEntity
             .status(HttpStatus.OK)
             .contentType(MediaType.APPLICATION_JSON)
@@ -72,16 +72,13 @@ class KeypadController {
         val reverseKeypadImages = keypadImages.entries.associate { (key, value) -> value to key }
         val keysForTempValues = temp.map { reverseKeypadImages[it] }
 
-        // Create 4-by-3 ArrayList with corresponding values from keypadNumHashes
-        PublicKey = ArrayList()
+        // Inside the renderKeypad function
         for (i in 0 until 3) {
-            val row = ArrayList<String?>()
             for (j in 0 until 4) {
                 val key = keysForTempValues.getOrNull(i * 4 + j)
                 val value = keypadNumHashes[key] ?: ""
-                row.add(value)
+                PublicKey[Pair(i, j)] = value
             }
-            PublicKey.add(row)
         }
 
         val temp2 = PublicKey

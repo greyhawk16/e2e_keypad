@@ -1,17 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import axios from "axios";
-// import api from './api';
-
-
-let NumHashMap: any = null;
 
 const App: React.FC = () => {
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const [keypadInfo, setKeypadInfo] = useState<any>(null);
     const [userInput, setUserInput] = useState<string>('');
+    const [clickedPositions, setClickedPositions] = useState<Array<{ row: number, col: number }>>([]);
     const baseURL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8080';
     const apiEndpointShowKeypad = `${baseURL}/api/show_keypad`;
-    const apiEndpointGetKeypadInfo = `${baseURL}/api/get_kaypad_secret_key`;
+    const apiEndpointGetKeypadInfo = `${baseURL}/api/get_public_key`;
 
     useEffect(() => {
         axios.get(apiEndpointShowKeypad, { responseType: 'arraybuffer' })
@@ -33,7 +30,6 @@ const App: React.FC = () => {
             .then(response => {
                 if (response.status === 200) {
                     setKeypadInfo(response.data);
-                    NumHashMap = response.data; // Store result in global variable
                     console.log("Keypad Info:", response.data); // Print the received result
                 }
             })
@@ -42,32 +38,30 @@ const App: React.FC = () => {
             });
     }, []);
 
-    const handleKeyPress = (event: React.KeyboardEvent) => {
-        const { key } = event;
+    const handleImageClick = (event: React.MouseEvent<HTMLImageElement>) => {
+        const img = event.currentTarget;
+        const rect = img.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        const row = Math.floor(y / (rect.height / 3));
+        const col = Math.floor(x / (rect.width / 4));
 
-        // Check if the key is a digit
-        if (/^\d$/.test(key)) {
-            if (userInput.length < 6) {
-                setUserInput(prevInput => prevInput + key);
+        setClickedPositions(prevPositions => {
+            const newPositions = [...prevPositions, { row, col }];
+            if (newPositions.length === 6) {
+                alert(`Clicked Positions: ${JSON.stringify(newPositions)}`);
             }
-        } else if (key === 'Backspace') {
-            setUserInput(prevInput => prevInput.slice(0, -1));
-        }
-    };
-
-    const showAlert = () => {
-        const mappedValues = userInput.split('').map(digit => NumHashMap[digit]);
-        alert(`User Input: ${userInput}\nMapped Values: ${mappedValues.join(', ')}`);
+            return newPositions;
+        });
     };
 
     return (
-        <div className="App" tabIndex={0} onKeyDown={handleKeyPress}>
+        <div className="App">
             <h1>Demo Project</h1>
-            {imageSrc ? <img src={imageSrc} alt="Rendered Keypad" /> : <p>Loading image...</p>}
-            {NumHashMap && <pre>{JSON.stringify(NumHashMap, null, 2)}</pre>}
+            {imageSrc ? <img src={imageSrc} alt="Rendered Keypad" onClick={handleImageClick} /> : <p>Loading image...</p>}
+            {keypadInfo && <pre>{JSON.stringify(keypadInfo, null, 2)}</pre>}
             <h2>Enter 6-digit Code</h2>
             <p>{userInput}</p>
-            <button onClick={showAlert}>Show User Input</button>
         </div>
     );
 }
