@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import axios from "axios";
 // import api from './api';
 
+
+let NumHashMap: any = null;
+
 const App: React.FC = () => {
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const [keypadInfo, setKeypadInfo] = useState<any>(null);
@@ -29,6 +32,7 @@ const App: React.FC = () => {
             .then(response => {
                 if (response.status === 200) {
                     setKeypadInfo(response.data);
+                    NumHashMap = response.data; // Store result in global variable
                     console.log("Keypad Info:", response.data); // Print the received result
                 }
             })
