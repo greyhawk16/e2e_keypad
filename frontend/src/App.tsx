@@ -4,9 +4,11 @@ import axios from "axios";
 
 const App: React.FC = () => {
     const [imageSrc, setImageSrc] = useState<string | null>(null);
+    const baseURL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8080';
+    const apiEndpoint = `${baseURL}/api/show_keypad`;
 
     useEffect(() => {
-        axios.get('http://localhost:8080/api/example', { responseType: 'arraybuffer' })
+        axios.get(apiEndpoint, { responseType: 'arraybuffer' })
             .then(response => {
                 if (response.status === 200) {
                     const base64String = btoa(
