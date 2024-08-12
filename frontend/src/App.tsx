@@ -11,7 +11,7 @@ const App: React.FC = () => {
     const [userInput, setUserInput] = useState<string>('');
     const baseURL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8080';
     const apiEndpointShowKeypad = `${baseURL}/api/show_keypad`;
-    const apiEndpointGetKeypadInfo = `${baseURL}/api/get_kaypad_info`;
+    const apiEndpointGetKeypadInfo = `${baseURL}/api/get_kaypad_secret_key`;
 
     useEffect(() => {
         axios.get(apiEndpointShowKeypad, { responseType: 'arraybuffer' })

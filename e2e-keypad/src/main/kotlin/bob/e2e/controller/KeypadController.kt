@@ -22,7 +22,9 @@ import java.io.File
 @RestController
 @RequestMapping("/api")
 class KeypadController {
-    @GetMapping("/get_kaypad_info")
+    private var PublicKey: ArrayList<ArrayList<String?>> = arrayListOf()
+
+    @GetMapping("/get_kaypad_secret_key")
     fun RetrieveKeypad(): ResponseEntity<Map<String, Any>> {
         val keypadRepository = KeypadRepository()
         val dbKey = "NumToHash"
@@ -33,6 +35,14 @@ class KeypadController {
             .status(HttpStatus.OK)
             .contentType(MediaType.APPLICATION_JSON)
             .body(ans)
+    }
+
+    @GetMapping("/get_public_key")
+    fun getPublicKey(): ResponseEntity<ArrayList<ArrayList<String?>>> {
+        return ResponseEntity
+            .status(HttpStatus.OK)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(PublicKey)
     }
 
     @GetMapping("/show_keypad")
@@ -58,7 +68,24 @@ class KeypadController {
         val keypadRepository = KeypadRepository()
         keypadRepository.storeHashImageMap(keypadNumHashes, dbKey)
 
-        val combinedImage = combineImages(keypadImages.values.toList().shuffled())
+        val temp = keypadImages.values.toList().shuffled()
+        val reverseKeypadImages = keypadImages.entries.associate { (key, value) -> value to key }
+        val keysForTempValues = temp.map { reverseKeypadImages[it] }
+
+        // Create 4-by-3 ArrayList with corresponding values from keypadNumHashes
+        PublicKey = ArrayList()
+        for (i in 0 until 3) {
+            val row = ArrayList<String?>()
+            for (j in 0 until 4) {
+                val key = keysForTempValues.getOrNull(i * 4 + j)
+                val value = keypadNumHashes[key] ?: ""
+                row.add(value)
+            }
+            PublicKey.add(row)
+        }
+
+        val temp2 = PublicKey
+        val combinedImage = combineImages(temp)
         return ResponseEntity
             .status(HttpStatus.OK)
             .contentType(MediaType.IMAGE_PNG)
@@ -67,17 +94,17 @@ class KeypadController {
 
     private fun combineImages(base64Images: List<String>): ByteArray {
         val images = base64Images.map { decodeBase64ToImage(it) }
-        val cols = 3
-        val rows = 4
+        val rows = 3
+        val cols = 4
         val width = images[0].width
         val height = images[0].height
 
-        val combinedImage = BufferedImage(width * rows, height * cols, BufferedImage.TYPE_INT_ARGB)
+        val combinedImage = BufferedImage(width * cols, height * rows, BufferedImage.TYPE_INT_ARGB)
         val g = combinedImage.graphics
 
         for (i in images.indices) {
-            val x = (i % rows) * width
-            val y = (i / rows) * height
+            val x = (i % cols) * width
+            val y = (i / cols) * height
             g.drawImage(images[i], x, y, null)
         }
 
