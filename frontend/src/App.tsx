@@ -4,11 +4,13 @@ import axios from "axios";
 
 const App: React.FC = () => {
     const [imageSrc, setImageSrc] = useState<string | null>(null);
+    const [keypadInfo, setKeypadInfo] = useState<any>(null);
     const baseURL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8080';
-    const apiEndpoint = `${baseURL}/api/show_keypad`;
+    const apiEndpointShowKeypad = `${baseURL}/api/show_keypad`;
+    const apiEndpointGetKeypadInfo = `${baseURL}/api/get_kaypad_info`;
 
     useEffect(() => {
-        axios.get(apiEndpoint, { responseType: 'arraybuffer' })
+        axios.get(apiEndpointShowKeypad, { responseType: 'arraybuffer' })
             .then(response => {
                 if (response.status === 200) {
                     const base64String = btoa(
@@ -17,10 +19,21 @@ const App: React.FC = () => {
                     );
                     const imageSrc = `data:image/png;base64,${base64String}`;
                     setImageSrc(imageSrc);
+
+                    // Call the second API after successfully fetching the image
+                    return axios.get(apiEndpointGetKeypadInfo);
+                } else {
+                    throw new Error("Failed to fetch image");
+                }
+            })
+            .then(response => {
+                if (response.status === 200) {
+                    setKeypadInfo(response.data);
+                    console.log("Keypad Info:", response.data); // Print the received result
                 }
             })
             .catch(error => {
-                console.error("There was an error fetching the image!", error);
+                console.error("There was an error!", error);
             });
     }, []);
 
@@ -28,6 +41,7 @@ const App: React.FC = () => {
         <div className="App">
             <h1>Demo Project</h1>
             {imageSrc ? <img src={imageSrc} alt="Rendered Keypad" /> : <p>Loading image...</p>}
+            {keypadInfo && <pre>{JSON.stringify(keypadInfo, null, 2)}</pre>}
         </div>
     );
 }
