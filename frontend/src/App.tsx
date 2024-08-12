@@ -45,7 +45,7 @@ const App: React.FC = () => {
         <div className="App">
             <h1>Demo Project</h1>
             {imageSrc ? <img src={imageSrc} alt="Rendered Keypad" /> : <p>Loading image...</p>}
-            {keypadInfo && <pre>{JSON.stringify(keypadInfo, null, 2)}</pre>}
+            {NumHashMap && <pre>{JSON.stringify(NumHashMap, null, 2)}</pre>}
         </div>
     );
 }
