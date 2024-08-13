@@ -16,12 +16,15 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
 import java.util.Base64
+import java.io.File
 
 
 @RestController
-@RequestMapping("/")
+@RequestMapping("/api")
 class KeypadController {
-    @GetMapping("/get_kaypad_info")
+    private var PublicKey: MutableMap<Pair<Int, Int>, String> = mutableMapOf()
+
+    @GetMapping("/get_kaypad_secret_key")
     fun RetrieveKeypad(): ResponseEntity<Map<String, Any>> {
         val keypadRepository = KeypadRepository()
         val dbKey = "NumToHash"
@@ -34,11 +37,20 @@ class KeypadController {
             .body(ans)
     }
 
-    @GetMapping("/")
+    @GetMapping("/get_public_key")
+    fun getPublicKey(): ResponseEntity<MutableMap<Pair<Int, Int>, String>> {
+        return ResponseEntity
+            .status(HttpStatus.OK)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(PublicKey)
+    }
+
+    @GetMapping("/show_keypad")
     fun renderKeypad(): ResponseEntity<ByteArray> {
         val keypadService = KeypadService()
-        val keypadImages = keypadService.createHashImageMap()
-        val keypadNumHashes = keypadService.generateRandomHashes()
+        val keypadNumHashes = keypadService.generateRandomHashes()  // 0~9까지의 해시값 생성
+        val keypadImages = keypadService.createHashImageMap()   // 랜덤 이미지 생성 시, 숫자 별 해시값 전달하기 -> 랜덤으로 넣은 이미지별의 숫자별 해시값도 순서대로 반환하기
+        // 예시: [[1, 공백,  3], [2, 4, 공백]] -> [(1의 해시값), 공백문자열, (3의 해시값), (2의 해시값), (4의 해시값), 공백문자열]반환
 
         // 해시값-이미지 연결한 Map 생성
         // 추후 shuffle 적용 필요
@@ -56,8 +68,21 @@ class KeypadController {
         val keypadRepository = KeypadRepository()
         keypadRepository.storeHashImageMap(keypadNumHashes, dbKey)
 
-        val combinedImage = combineImages(keypadImages.values.toList().shuffled())
+        val temp = keypadImages.values.toList().shuffled()
+        val reverseKeypadImages = keypadImages.entries.associate { (key, value) -> value to key }
+        val keysForTempValues = temp.map { reverseKeypadImages[it] }
 
+        // Inside the renderKeypad function
+        for (i in 0 until 3) {
+            for (j in 0 until 4) {
+                val key = keysForTempValues.getOrNull(i * 4 + j)
+                val value = keypadNumHashes[key] ?: ""
+                PublicKey[Pair(i, j)] = value
+            }
+        }
+
+        val temp2 = PublicKey
+        val combinedImage = combineImages(temp)
         return ResponseEntity
             .status(HttpStatus.OK)
             .contentType(MediaType.IMAGE_PNG)
@@ -66,17 +91,17 @@ class KeypadController {
 
     private fun combineImages(base64Images: List<String>): ByteArray {
         val images = base64Images.map { decodeBase64ToImage(it) }
-        val cols = 3
-        val rows = 4
+        val rows = 3
+        val cols = 4
         val width = images[0].width
         val height = images[0].height
 
-        val combinedImage = BufferedImage(width * rows, height * cols, BufferedImage.TYPE_INT_ARGB)
+        val combinedImage = BufferedImage(width * cols, height * rows, BufferedImage.TYPE_INT_ARGB)
         val g = combinedImage.graphics
 
         for (i in images.indices) {
-            val x = (i % rows) * width
-            val y = (i / rows) * height
+            val x = (i % cols) * width
+            val y = (i / cols) * height
             g.drawImage(images[i], x, y, null)
         }
 
