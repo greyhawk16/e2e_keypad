@@ -5,7 +5,7 @@ const App: React.FC = () => {
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const [keypadInfo, setKeypadInfo] = useState<any>(null);
     const [userInput, setUserInput] = useState<string>('');
-    const [clickedPositions, setClickedPositions] = useState<Array<{ row: number, col: number }>>([]);
+    const [clickedPositions, setClickedPositions] = useState<string[]>([]);
     const baseURL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8080';
     const apiEndpointShowKeypad = `${baseURL}/api/show_keypad`;
     const apiEndpointGetKeypadInfo = `${baseURL}/api/get_public_key`;
@@ -45,11 +45,13 @@ const App: React.FC = () => {
         const y = event.clientY - rect.top;
         const row = Math.floor(y / (rect.height / 3));
         const col = Math.floor(x / (rect.width / 4));
+        const positionString = `(${row}, ${col})`;
 
         setClickedPositions(prevPositions => {
-            const newPositions = [...prevPositions, { row, col }];
+            const newPositions = [...prevPositions, positionString];
             if (newPositions.length === 6) {
-                alert(`Clicked Positions: ${JSON.stringify(newPositions)}`);
+                const clickedValues = newPositions.map(pos => keypadInfo[pos]);
+                alert(`${JSON.stringify(clickedValues)}`);
             }
             return newPositions;
         });
@@ -60,8 +62,6 @@ const App: React.FC = () => {
             <h1>Demo Project</h1>
             {imageSrc ? <img src={imageSrc} alt="Rendered Keypad" onClick={handleImageClick} /> : <p>Loading image...</p>}
             {keypadInfo && <pre>{JSON.stringify(keypadInfo, null, 2)}</pre>}
-            <h2>Enter 6-digit Code</h2>
-            <p>{userInput}</p>
         </div>
     );
 }
