@@ -57,9 +57,31 @@ const App: React.FC = () => {
         });
     };
 
+    const renderCircles = () => {
+        const circles = [];
+        for (let i = 0; i < 6; i++) {
+            circles.push(
+                <div
+                    key={i}
+                    style={{
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        backgroundColor: i < clickedPositions.length ? 'blue' : 'lightgrey',
+                        margin: '5px'
+                    }}
+                ></div>
+            );
+        }
+        return circles;
+    };
+
     return (
         <div className="App">
             <h1>Demo Project</h1>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+                {renderCircles()}
+            </div>
             {imageSrc ? <img src={imageSrc} alt="Rendered Keypad" onClick={handleImageClick} /> : <p>Loading image...</p>}
             {keypadInfo && <pre>{JSON.stringify(keypadInfo, null, 2)}</pre>}
         </div>
