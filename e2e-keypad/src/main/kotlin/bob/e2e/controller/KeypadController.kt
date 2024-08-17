@@ -22,7 +22,7 @@ import java.io.File
 @RestController
 @RequestMapping("/api")
 class KeypadController {
-    private var PublicKey: MutableMap<Pair<Int, Int>, String> = mutableMapOf()
+    private var PublicKey: MutableMap<String, Any> = mutableMapOf()
 
     @GetMapping("/get_kaypad_secret_key")
     fun RetrieveKeypad(): ResponseEntity<Map<String, Any>> {
@@ -38,7 +38,7 @@ class KeypadController {
     }
 
     @GetMapping("/get_public_key")
-    fun getPublicKey(): ResponseEntity<MutableMap<Pair<Int, Int>, String>> {
+    fun getPublicKey(): ResponseEntity<MutableMap<String, Any>> {
         return ResponseEntity
             .status(HttpStatus.OK)
             .contentType(MediaType.APPLICATION_JSON)
@@ -59,9 +59,6 @@ class KeypadController {
             hashImageMap[hashValue] = keypadImages[key] ?: ""
         }
 
-        val hmacKey = keypadService.generateRandomHash()
-        val keypadSessionId = keypadService.generateRandomHash()
-        val keypadHmac = keypadService.generateHMAC(keypadSessionId, hmacKey)
 
         val dotenv = Dotenv.load()
         val dbKey = dotenv["NumToHashMap"]
@@ -72,21 +69,46 @@ class KeypadController {
         val reverseKeypadImages = keypadImages.entries.associate { (key, value) -> value to key }
         val keysForTempValues = temp.map { reverseKeypadImages[it] }
 
-        // Inside the renderKeypad function
+        val keypadMap = mutableMapOf<Pair<Int, Int>, String>()
         for (i in 0 until 3) {
             for (j in 0 until 4) {
                 val key = keysForTempValues.getOrNull(i * 4 + j)
                 val value = keypadNumHashes[key] ?: ""
-                PublicKey[Pair(i, j)] = value
+                keypadMap[Pair(i, j)] = value
             }
         }
 
-        val temp2 = PublicKey
         val combinedImage = combineImages(temp)
+
+        val hmacKey = keypadService.generateRandomHash()
+        val keypadSessionId = keypadService.generateRandomHash()
+        val keypadHmac = keypadService.generateHMAC(keypadSessionId, combinedImage.toString())
+
+        PublicKey["keypadMap"] = keypadMap
+        PublicKey["keypadHmac"] = keypadHmac
+        PublicKey["keypadSessionId"] = keypadSessionId
+
         return ResponseEntity
             .status(HttpStatus.OK)
             .contentType(MediaType.IMAGE_PNG)
             .body(combinedImage)
+    }
+
+    @PostMapping("/verify_keypad")
+    fun VerifyKeypad(@RequestBody body: Map<String, Any>): ResponseEntity<Map<String, Any>> {
+        val requestKeypadSessionId = body["keypadSessionId"] as? String
+        val concatenatedHashes = body["concatenatedHashes"] as? String
+
+        return if (requestKeypadSessionId == PublicKey["keypadSessionId"]) {
+            ResponseEntity.status(HttpStatus.OK).body(mapOf<String, Any>(
+                "message" to "Verification successful",
+                "concatenatedHashes" to (concatenatedHashes ?: "")
+            ))
+        } else {
+            ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(mapOf<String, Any>(
+                "message" to "Verification failed"
+            ))
+        }
     }
 
     private fun combineImages(base64Images: List<String>): ByteArray {
