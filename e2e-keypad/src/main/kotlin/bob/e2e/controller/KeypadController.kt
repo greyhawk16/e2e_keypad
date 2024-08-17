@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.client.RestTemplate
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -101,18 +102,25 @@ class KeypadController {
 
         val keypadRepository = KeypadRepository()
         val dbKey = "NumToHash"
-
         val ans = keypadRepository.retrieveHashImageMap(dbKey)
 
         return if (requestKeypadSessionId == PublicKey["keypadSessionId"]) {
-            ResponseEntity.status(HttpStatus.OK).body(mapOf<String, Any>(
-                "message" to "Verification successful",
-                "concatenatedHashes" to (concatenatedHashes ?: "")
-            ))
+            val requestBody = mapOf(
+                "userInput" to concatenatedHashes,
+                "keyHashMap" to ans,
+                "keyLength" to 2048
+            )
+
+            val response = try {
+                val restTemplate = RestTemplate()
+                restTemplate.postForEntity("http://146.56.119.112:8081/auth", requestBody, Map::class.java)
+            } catch (e: Exception) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(mapOf("message" to "External service call failed"))
+            }
+
+            ResponseEntity.status(response.statusCode).body(response.body as Map<String, Any>)
         } else {
-            ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(mapOf<String, Any>(
-                "message" to "Verification failed"
-            ))
+            ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(mapOf("message" to "Verification failed"))
         }
     }
 
