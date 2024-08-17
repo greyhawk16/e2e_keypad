@@ -99,6 +99,11 @@ class KeypadController {
         val requestKeypadSessionId = body["keypadSessionId"] as? String
         val concatenatedHashes = body["concatenatedHashes"] as? String
 
+        val keypadRepository = KeypadRepository()
+        val dbKey = "NumToHash"
+
+        val ans = keypadRepository.retrieveHashImageMap(dbKey)
+
         return if (requestKeypadSessionId == PublicKey["keypadSessionId"]) {
             ResponseEntity.status(HttpStatus.OK).body(mapOf<String, Any>(
                 "message" to "Verification successful",
