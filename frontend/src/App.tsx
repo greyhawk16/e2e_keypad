@@ -58,7 +58,8 @@ const App: React.FC = () => {
             const requestBody = {
                 concatenatedHashes,
                 keypadSessionId: keypadInfo.keypadSessionId,
-                keypadTimeStamp: currentTimestamp,
+                validUntil: keypadInfo.validUntil,
+                keypadHmac: keypadInfo.keypadHmac,
             };
 
             axios.post(apiEndpointVerifyKeypad, requestBody)
