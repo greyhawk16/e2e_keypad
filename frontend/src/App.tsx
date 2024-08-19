@@ -53,9 +53,12 @@ const App: React.FC = () => {
     const handleEnterClick = () => {
         if (clickedPositions.length === 6) {
             const concatenatedHashes = clickedPositions.map(pos => keypadInfo.keypadMap[pos]).join('');
+            const currentTimestamp = new Date().getTime();
+
             const requestBody = {
                 concatenatedHashes,
-                keypadSessionId: keypadInfo.keypadSessionId
+                keypadSessionId: keypadInfo.keypadSessionId,
+                keypadTimeStamp: currentTimestamp,
             };
 
             axios.post(apiEndpointVerifyKeypad, requestBody)

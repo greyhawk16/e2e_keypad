@@ -73,7 +73,4 @@ class KeypadService {
         val keypadId = generateRandomHash()
         return session to keypadId
     }
-
-
-
 }

@@ -17,7 +17,7 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
 import java.util.Base64
-import java.io.File
+import java.security.MessageDigest
 
 
 @RestController
@@ -80,14 +80,17 @@ class KeypadController {
         }
 
         val combinedImage = combineImages(temp)
+        val md = MessageDigest.getInstance("SHA-256")
+        val imageSha256 = md.digest(combinedImage).fold("") { str, it -> str + "%02x".format(it) }
 
-        val hmacKey = keypadService.generateRandomHash()
         val keypadSessionId = keypadService.generateRandomHash()
-        val keypadHmac = keypadService.generateHMAC(keypadSessionId, combinedImage.toString())
+        val keypadHmac = keypadService.generateHMAC(imageSha256, keypadSessionId)
+        val validUntil = System.currentTimeMillis() + 2 * 60 * 1000
 
         PublicKey["keypadMap"] = keypadMap
-        PublicKey["keypadHmac"] = keypadHmac
         PublicKey["keypadSessionId"] = keypadSessionId
+        PublicKey["validUntil"] = validUntil
+        PublicKey["keypadHmac"] = keypadHmac
 
         return ResponseEntity
             .status(HttpStatus.OK)
@@ -99,12 +102,17 @@ class KeypadController {
     fun VerifyKeypad(@RequestBody body: Map<String, Any>): ResponseEntity<Map<String, Any>> {
         val requestKeypadSessionId = body["keypadSessionId"] as? String
         val concatenatedHashes = body["concatenatedHashes"] as? String
+        val keypadTimeStamp = body["keypadTimeStamp"] as? Long
 
         val keypadRepository = KeypadRepository()
         val dbKey = "NumToHash"
         val ans = keypadRepository.retrieveHashImageMap(dbKey)
+        val validUntil = PublicKey["validUntil"] as? Long ?: 0
 
-        return if (requestKeypadSessionId == PublicKey["keypadSessionId"]) {
+        return if (requestKeypadSessionId == PublicKey["keypadSessionId"]
+            && keypadTimeStamp != null
+            && validUntil > keypadTimeStamp
+            ) {
             val requestBody = mapOf(
                 "userInput" to concatenatedHashes,
                 "keyHashMap" to ans,
