@@ -84,8 +84,8 @@ class KeypadController {
         val imageSha256 = md.digest(combinedImage).fold("") { str, it -> str + "%02x".format(it) }
 
         val keypadSessionId = keypadService.generateRandomHash()
-        val keypadHmac = keypadService.generateHMAC(imageSha256, keypadSessionId)
         val validUntil = System.currentTimeMillis() + 2 * 60 * 1000
+        val keypadHmac = keypadService.generateHMAC(validUntil.toString(), keypadSessionId)
 
         PublicKey["keypadMap"] = keypadMap
         PublicKey["keypadSessionId"] = keypadSessionId
@@ -100,18 +100,21 @@ class KeypadController {
 
     @PostMapping("/verify_keypad")
     fun VerifyKeypad(@RequestBody body: Map<String, Any>): ResponseEntity<Map<String, Any>> {
-        val requestKeypadSessionId = body["keypadSessionId"] as? String
+        val requestKeypadSessionId = body["keypadSessionId"] as String
         val concatenatedHashes = body["concatenatedHashes"] as? String
-        val keypadTimeStamp = body["keypadTimeStamp"] as? Long
-
+        val requestKeypadHmac = body["keypadHmac"] as? String
+        val keypadTimeStamp = body["validUntil"] as? Long
         val keypadRepository = KeypadRepository()
         val dbKey = "NumToHash"
         val ans = keypadRepository.retrieveHashImageMap(dbKey)
         val validUntil = PublicKey["validUntil"] as? Long ?: 0
 
+        val calculatedHmacKey = KeypadService().generateHMAC(keypadTimeStamp.toString(), requestKeypadSessionId)
+
         return if (requestKeypadSessionId == PublicKey["keypadSessionId"]
             && keypadTimeStamp != null
-            && validUntil > keypadTimeStamp
+            && validUntil > System.currentTimeMillis()
+            && calculatedHmacKey == requestKeypadHmac
             ) {
             val requestBody = mapOf(
                 "userInput" to concatenatedHashes,
