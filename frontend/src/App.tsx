@@ -4,11 +4,11 @@ import axios from "axios";
 const App: React.FC = () => {
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const [keypadInfo, setKeypadInfo] = useState<any>(null);
-    const [userInput, setUserInput] = useState<string>('');
     const [clickedPositions, setClickedPositions] = useState<string[]>([]);
     const baseURL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8080';
     const apiEndpointShowKeypad = `${baseURL}/api/show_keypad`;
     const apiEndpointGetKeypadInfo = `${baseURL}/api/get_public_key`;
+    const apiEndpointVerifyKeypad = `${baseURL}/api/verify_keypad`;
 
     useEffect(() => {
         axios.get(apiEndpointShowKeypad, { responseType: 'arraybuffer' })
@@ -47,14 +47,32 @@ const App: React.FC = () => {
         const col = Math.floor(x / (rect.width / 4));
         const positionString = `(${row}, ${col})`;
 
-        setClickedPositions(prevPositions => {
-            const newPositions = [...prevPositions, positionString];
-            if (newPositions.length === 6) {
-                const clickedValues = newPositions.map(pos => keypadInfo[pos]);
-                alert(`${JSON.stringify(clickedValues)}`);
-            }
-            return newPositions;
-        });
+        setClickedPositions(prevPositions => [...prevPositions, positionString]);
+    };
+
+    const handleEnterClick = () => {
+        if (clickedPositions.length === 6) {
+            const concatenatedHashes = clickedPositions.map(pos => keypadInfo.keypadMap[pos]).join('');
+            const currentTimestamp = new Date().getTime();
+
+            const requestBody = {
+                concatenatedHashes,
+                keypadSessionId: keypadInfo.keypadSessionId,
+                validUntil: keypadInfo.validUntil,
+                keypadHmac: keypadInfo.keypadHmac,
+            };
+
+            axios.post(apiEndpointVerifyKeypad, requestBody)
+                .then(response => {
+                    alert(JSON.stringify(response.data));
+                })
+                .catch(error => {
+                    console.error("There was an error!", error);
+                    alert("Verification failed");
+                });
+        } else {
+            alert("Please click 6 positions on the keypad.");
+        }
     };
 
     const renderCircles = () => {
@@ -83,6 +101,7 @@ const App: React.FC = () => {
                 {renderCircles()}
             </div>
             {imageSrc ? <img src={imageSrc} alt="Rendered Keypad" onClick={handleImageClick} /> : <p>Loading image...</p>}
+            <button onClick={handleEnterClick}>ENTER</button>
             {keypadInfo && <pre>{JSON.stringify(keypadInfo, null, 2)}</pre>}
         </div>
     );

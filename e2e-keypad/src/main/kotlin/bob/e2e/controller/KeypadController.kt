@@ -11,18 +11,19 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.client.RestTemplate
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
 import java.util.Base64
-import java.io.File
+import java.security.MessageDigest
 
 
 @RestController
 @RequestMapping("/api")
 class KeypadController {
-    private var PublicKey: MutableMap<Pair<Int, Int>, String> = mutableMapOf()
+    private var PublicKey: MutableMap<String, Any> = mutableMapOf()
 
     @GetMapping("/get_kaypad_secret_key")
     fun RetrieveKeypad(): ResponseEntity<Map<String, Any>> {
@@ -38,7 +39,7 @@ class KeypadController {
     }
 
     @GetMapping("/get_public_key")
-    fun getPublicKey(): ResponseEntity<MutableMap<Pair<Int, Int>, String>> {
+    fun getPublicKey(): ResponseEntity<MutableMap<String, Any>> {
         return ResponseEntity
             .status(HttpStatus.OK)
             .contentType(MediaType.APPLICATION_JSON)
@@ -59,9 +60,6 @@ class KeypadController {
             hashImageMap[hashValue] = keypadImages[key] ?: ""
         }
 
-        val hmacKey = keypadService.generateRandomHash()
-        val keypadSessionId = keypadService.generateRandomHash()
-        val keypadHmac = keypadService.generateHMAC(keypadSessionId, hmacKey)
 
         val dotenv = Dotenv.load()
         val dbKey = dotenv["NumToHashMap"]
@@ -72,21 +70,84 @@ class KeypadController {
         val reverseKeypadImages = keypadImages.entries.associate { (key, value) -> value to key }
         val keysForTempValues = temp.map { reverseKeypadImages[it] }
 
-        // Inside the renderKeypad function
+        val keypadMap = mutableMapOf<Pair<Int, Int>, String>()
         for (i in 0 until 3) {
             for (j in 0 until 4) {
                 val key = keysForTempValues.getOrNull(i * 4 + j)
                 val value = keypadNumHashes[key] ?: ""
-                PublicKey[Pair(i, j)] = value
+                keypadMap[Pair(i, j)] = value
             }
         }
 
-        val temp2 = PublicKey
         val combinedImage = combineImages(temp)
+        val md = MessageDigest.getInstance("SHA-256")
+        val imageSha256 = md.digest(combinedImage).fold("") { str, it -> str + "%02x".format(it) }
+
+        val keypadSessionId = keypadService.generateRandomHash()
+        val validUntil = System.currentTimeMillis() + 45 * 1000
+        val hashSalt = dotenv["HASH_SALT"]
+
+        val hmacData = StringBuilder().apply {
+            append(keypadSessionId)
+            append(validUntil.toString())
+            append(hashSalt)
+        }.toString()
+        val keypadHmac = keypadService.generateHMAC(keypadSessionId, hmacData)
+
+        PublicKey["keypadMap"] = keypadMap
+        PublicKey["keypadSessionId"] = keypadSessionId
+        PublicKey["validUntil"] = validUntil
+        PublicKey["keypadHmac"] = keypadHmac
+
         return ResponseEntity
             .status(HttpStatus.OK)
             .contentType(MediaType.IMAGE_PNG)
             .body(combinedImage)
+    }
+
+    @PostMapping("/verify_keypad")
+    fun VerifyKeypad(@RequestBody body: Map<String, Any>): ResponseEntity<Map<String, Any>> {
+        val requestKeypadSessionId = body["keypadSessionId"] as String
+        val concatenatedHashes = body["concatenatedHashes"] as? String
+        val requestKeypadHmac = body["keypadHmac"] as? String
+        val keypadTimeStamp = body["validUntil"] as? Long
+        val keypadRepository = KeypadRepository()
+        val dbKey = "NumToHash"
+        val ans = keypadRepository.retrieveHashImageMap(dbKey)
+        val validUntil = PublicKey["validUntil"] as? Long ?: 0
+
+        val dotenv = Dotenv.load()
+        val hashSalt = dotenv["HASH_SALT"]
+        val calculatedHmacData = StringBuilder().apply {
+            append(requestKeypadSessionId)
+            append(validUntil.toString())
+            append(hashSalt)
+        }.toString()
+
+        val calculatedHmacKey = KeypadService().generateHMAC(requestKeypadSessionId, calculatedHmacData)
+
+        return if (requestKeypadSessionId == PublicKey["keypadSessionId"]
+            && keypadTimeStamp != null
+            && validUntil > System.currentTimeMillis()
+            && calculatedHmacKey == requestKeypadHmac
+            ) {
+            val requestBody = mapOf(
+                "userInput" to concatenatedHashes,
+                "keyHashMap" to ans,
+                "keyLength" to 2048
+            )
+
+            val response = try {
+                val restTemplate = RestTemplate()
+                restTemplate.postForEntity("http://146.56.119.112:8081/auth", requestBody, Map::class.java)
+            } catch (e: Exception) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(mapOf("message" to "External service call failed"))
+            }
+
+            ResponseEntity.status(response.statusCode).body(response.body as Map<String, Any>)
+        } else {
+            ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(mapOf("message" to "Verification failed"))
+        }
     }
 
     private fun combineImages(base64Images: List<String>): ByteArray {
