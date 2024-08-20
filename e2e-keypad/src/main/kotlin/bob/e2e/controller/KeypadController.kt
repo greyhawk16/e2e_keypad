@@ -106,7 +106,7 @@ class KeypadController {
     }
 
     @PostMapping("/verify_keypad")
-    fun VerifyKeypad(@RequestBody body: Map<String, Any>): ResponseEntity<Map<String, Any>> {
+    fun VerifyKeypad(@RequestBody body: Map<String, Any>): ResponseEntity<out Map<out Any?, Any?>>? {
         val requestKeypadSessionId = body["keypadSessionId"] as String
         val concatenatedHashes = body["concatenatedHashes"] as? String
         val requestKeypadHmac = body["keypadHmac"] as? String
@@ -126,28 +126,50 @@ class KeypadController {
 
         val calculatedHmacKey = KeypadService().generateHMAC(requestKeypadSessionId, calculatedHmacData)
 
-        return if (requestKeypadSessionId == PublicKey["keypadSessionId"]
+        if (requestKeypadSessionId == PublicKey["keypadSessionId"]
             && keypadTimeStamp != null
             && validUntil > System.currentTimeMillis()
             && calculatedHmacKey == requestKeypadHmac
-            ) {
+        ) {
             val requestBody = mapOf(
                 "userInput" to concatenatedHashes,
                 "keyHashMap" to ans,
-                "keyLength" to 2048
+//                "keyLength" to 2048
             )
 
             val response = try {
                 val restTemplate = RestTemplate()
                 restTemplate.postForEntity("http://146.56.119.112:8081/auth", requestBody, Map::class.java)
-            } catch (e: Exception) {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(mapOf("message" to "External service call failed"))
+                } catch (e: Exception) { ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(mapOf("message" to "Verification failed"))
             }
-
-            ResponseEntity.status(response.statusCode).body(response.body as Map<String, Any>)
+            return response
         } else {
-            ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(mapOf("message" to "Verification failed"))
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(mapOf("message" to "Verification failed"))
         }
+
+//        return if (requestKeypadSessionId == PublicKey["keypadSessionId"]
+//            && keypadTimeStamp != null
+//            && validUntil > System.currentTimeMillis()
+//            && calculatedHmacKey == requestKeypadHmac
+//            ) {
+//            val requestBody = mapOf(
+//                "userInput" to concatenatedHashes,
+//                "keyHashMap" to ans,
+//                "keyLength" to 2048
+//            )
+//
+//            val response = try {
+//                val restTemplate = RestTemplate()
+//                restTemplate.postForEntity("http://146.56.119.112:8081/auth", requestBody, Map::class.java)
+//            } catch (e: Exception) {
+//                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(mapOf("message" to "External service call failed"))
+//            }
+//
+//            ResponseEntity.status(response.statusCode).body(response.body as Map<String, Any>)
+//        } else {
+//            ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(mapOf("message" to "Verification failed"))
+//        }
     }
 
     private fun combineImages(base64Images: List<String>): ByteArray {

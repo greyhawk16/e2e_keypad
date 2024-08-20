@@ -27,6 +27,8 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib")
     implementation("org.springframework.boot:spring-boot-starter-web")
     // Add other dependencies here
+    implementation("com.squareup.okhttp3:okhttp:4.9.1")
+
 }
 
 tasks.test {

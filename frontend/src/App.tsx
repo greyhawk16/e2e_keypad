@@ -52,7 +52,7 @@ const App: React.FC = () => {
 
     const handleEnterClick = () => {
         if (clickedPositions.length === 6) {
-            const concatenatedHashes = clickedPositions.map(pos => keypadInfo.keypadMap[pos]).join('');
+            const concatenatedHashes = clickedPositions.map(pos => keypadInfo.keypadMap[pos]).join(' + ');
             const currentTimestamp = new Date().getTime();
 
             const requestBody = {
