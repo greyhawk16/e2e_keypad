@@ -68,7 +68,7 @@ const App: React.FC = () => {
                 })
                 .catch(error => {
                     console.error("There was an error!", error);
-                    alert("Verification failed");
+                    alert(JSON.stringify(error.response.data));
                 });
         } else {
             alert("Please click 6 positions on the keypad.");
@@ -102,7 +102,6 @@ const App: React.FC = () => {
             </div>
             {imageSrc ? <img src={imageSrc} alt="Rendered Keypad" onClick={handleImageClick} /> : <p>Loading image...</p>}
             <button onClick={handleEnterClick}>ENTER</button>
-            {keypadInfo && <pre>{JSON.stringify(keypadInfo, null, 2)}</pre>}
         </div>
     );
 }
